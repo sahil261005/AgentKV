@@ -11,14 +11,14 @@
 
   const AGENTS = ["Planner", "Retriever", "Coder", "Reviewer"];
   const AGENT_COLOR = {
-    System: "#94a3b8", Planner: "#38bdf8", Retriever: "#a78bfa",
-    Coder: "#fbbf24", Reviewer: "#f472b6", Tail: "#475569",
+    System: "#8a8272", Planner: "#2f5d8c", Retriever: "#7a8a2e",
+    Coder: "#c58a17", Reviewer: "#a3472d", Tail: "#b8af9c",
   };
   const SHORT = { System: "S", Planner: "P", Retriever: "R", Coder: "C", Reviewer: "V", Tail: "t" };
   const POLICY_COLOR = {
-    "LRU": "#f87171", "LRU-TailFirst": "#fb923c", "AgentKV": "#34d399",
-    "AgentKV-Markov": "#60a5fa", "Belady": "#c084fc",
-    "LRU + CPU tier": "#f87171", "AgentKV + prefetch": "#34d399", "AgentKV-Markov + prefetch": "#60a5fa",
+    "LRU": "#cf4a2e", "LRU-TailFirst": "#b07d2b", "AgentKV": "#2d6a4f",
+    "AgentKV-Markov": "#1f8a8a", "Belady": "#1d1a14",
+    "LRU + CPU tier": "#cf4a2e", "AgentKV + prefetch": "#2d6a4f", "AgentKV-Markov + prefetch": "#1f8a8a",
   };
   const POLICY_RULE = {
     "LRU": "evicts whatever was used longest ago",
@@ -99,7 +99,7 @@
     svgEl.innerHTML = "";
     const defs = s("defs", {},
       s("marker", { id: svgEl.id + "-arrow", viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" },
-        s("path", { d: "M0,0 L10,5 L0,10 z", fill: "#5b6a8c" })),
+        s("path", { d: "M0,0 L10,5 L0,10 z", fill: "#9a917f" })),
       s("filter", { id: svgEl.id + "-glow", x: "-50%", y: "-50%", width: "200%", height: "200%" },
         s("feGaussianBlur", { stdDeviation: 6, result: "b" }),
         s("feMerge", {}, s("feMergeNode", { in: "b" }), s("feMergeNode", { in: "SourceGraphic" }))));
@@ -116,13 +116,13 @@
       const mx = (sx + ex) / 2 - uy * bend, my = (sy + ey) / 2 + ux * bend;
       svgEl.append(s("path", {
         d: `M${sx},${sy} Q${mx},${my} ${ex},${ey}`, fill: "none",
-        stroke: e.color || "#3a4a78", "stroke-width": e.width || 2,
+        stroke: e.color || "#bfb39a", "stroke-width": e.width || 2,
         "marker-end": `url(#${svgEl.id}-arrow)`, opacity: e.opacity || 1,
       }));
       if (e.label) {
         const off = bend + (bend < 0 ? -14 : 12);
         const lx = (sx + ex) / 2 - uy * off, ly = (sy + ey) / 2 + ux * off;
-        svgEl.append(s("text", { x: lx, y: ly + 4, "text-anchor": "middle", fill: "#cbd5e1", "font-size": 12, "font-weight": 700, "font-family": "JetBrains Mono, monospace" }, e.label));
+        svgEl.append(s("text", { x: lx, y: ly + 4, "text-anchor": "middle", fill: "#3d382e", "font-size": 12, "font-weight": 700, "font-family": "JetBrains Mono, monospace" }, e.label));
       }
     }
 
@@ -137,25 +137,25 @@
           s("animate", { attributeName: "opacity", values: "0.7;0;0.7", dur: "1.6s", repeatCount: "indefinite" })));
       }
       g.append(s("circle", {
-        cx: x, cy: y, r: nodeR, fill: isNow ? color : "#0d1428", stroke: color, "stroke-width": 2.5,
+        cx: x, cy: y, r: nodeR, fill: isNow ? color : "#fbf7ee", stroke: color, "stroke-width": 2.5,
         filter: isNow ? `url(#${svgEl.id}-glow)` : null,
       }));
       g.append(s("text", {
         x, y: y + 4, "text-anchor": "middle", "font-size": size * 0.034, "font-weight": 800,
-        fill: isNow ? "#060a14" : color, "font-family": "Inter, sans-serif",
+        fill: isNow ? "#fbf7ee" : color, "font-family": "Inter, sans-serif",
       }, agent));
       const badge = opts.badges && opts.badges[agent];
       if (badge) {
         const by = y + nodeR + 16;
         const w = Math.max(38, badge.length * 7.2 + 14);
-        g.append(s("rect", { x: x - w / 2, y: by - 12, width: w, height: 19, rx: 9.5, fill: "#111a33", stroke: "#2a3660" }));
-        g.append(s("text", { x, y: by + 2, "text-anchor": "middle", "font-size": 11, fill: "#e6ebf5", "font-family": "JetBrains Mono, monospace", "font-weight": 600 }, badge));
+        g.append(s("rect", { x: x - w / 2, y: by - 12, width: w, height: 19, rx: 9.5, fill: "#efe8d8", stroke: "#c9bda5" }));
+        g.append(s("text", { x, y: by + 2, "text-anchor": "middle", "font-size": 11, fill: "#1d1a14", "font-family": "JetBrains Mono, monospace", "font-weight": 600 }, badge));
       }
       svgEl.append(g);
     }
     if (opts.center) {
-      svgEl.append(s("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-size": 12, fill: "#8d9bbb", "font-family": "Inter" }, opts.center[0]));
-      svgEl.append(s("text", { x: cx, y: cy + 14, "text-anchor": "middle", "font-size": 12, fill: "#e6ebf5", "font-weight": 700, "font-family": "Inter" }, opts.center[1]));
+      svgEl.append(s("text", { x: cx, y: cy - 4, "text-anchor": "middle", "font-size": 12, fill: "#6a6355", "font-family": "Inter" }, opts.center[0]));
+      svgEl.append(s("text", { x: cx, y: cy + 14, "text-anchor": "middle", "font-size": 12, fill: "#1d1a14", "font-weight": 700, "font-family": "Inter" }, opts.center[1]));
     }
   }
   const CYCLE_EDGES = [
@@ -168,7 +168,7 @@
       { from: "Coder", to: "Reviewer" },
       { from: "Reviewer", to: "Planner", label: Math.round((1 - p) * 100) + "%" },
     ];
-    if (p > 0) edges.push({ from: "Reviewer", to: "Coder", label: Math.round(p * 100) + "%", bend: -26, color: "#fbbf24", width: 1.5 + p * 3 });
+    if (p > 0) edges.push({ from: "Reviewer", to: "Coder", label: Math.round(p * 100) + "%", bend: -26, color: "#c58a17", width: 1.5 + p * 3 });
     return edges;
   }
 
@@ -182,13 +182,13 @@
     const t = R.headline.tiered.cyclic_300;
     const seeds = R.headline.seeds_experiment;
     const stats = [
-      { from: fmt(cyc.LRU_hit_rate) + "% LRU", value: cyc.AgentKV_hit_rate, dec: 1, suffix: "%", accent: "#34d399",
+      { from: fmt(cyc.LRU_hit_rate) + "% LRU", value: cyc.AgentKV_hit_rate, dec: 1, suffix: "%", accent: "#2d6a4f",
         label: "block hit rate on a 4-agent loop (720 MiB), equal to the Bélády oracle" },
-      { from: "recomputed prefill", plain: true, value: cut, dec: 0, prefix: "−", suffix: "%", accent: "#38bdf8",
+      { from: "recomputed prefill", plain: true, value: cut, dec: 0, prefix: "−", suffix: "%", accent: "#2f5d8c",
         label: `on a branching loop: ~${Math.round(tflops).toLocaleString()} TFLOPs of Llama-3-8B prefill saved per trace` },
-      { from: fmt(t["LRU, GPU only"].stall_ms_per_request) + " ms LRU", value: t["AgentKV + CPU tier + prefetch"].stall_ms_per_request, dec: 0, suffix: " ms", accent: "#60a5fa",
+      { from: fmt(t["LRU, GPU only"].stall_ms_per_request) + " ms LRU", value: t["AgentKV + CPU tier + prefetch"].stall_ms_per_request, dec: 0, suffix: " ms", accent: "#1f8a8a",
         label: "modeled stall per request with a CPU tier and workflow-aware prefetching" },
-      { from: "random seeds", plain: true, value: seeds.agentkv_wins, dec: 0, suffix: "/" + seeds.seeds, accent: "#c084fc",
+      { from: "random seeds", plain: true, value: seeds.agentkv_wins, dec: 0, suffix: "/" + seeds.seeds, accent: "#1d1a14",
         label: `where AgentKV beat LRU (${fmt(seeds.agentkv_mean)} ± ${fmt(seeds.agentkv_std)}% vs ${fmt(seeds.lru_mean)}%)` },
     ];
     const box = $("#hero-stats");
@@ -351,8 +351,8 @@
       }
       saved += hits;
       $("#radix-saved").textContent = saved;
-      let msg = `${pill(agent)} prompt (${prompt.length} blocks): <b style="color:#34d399">reused ${hits}</b>, computed ${rest.length}.`;
-      if (split) msg += ` <span style="color:#fbbf24">Split</span> the node [${split.before}] after ${split.k} block${split.k > 1 ? "s" : ""}, because the prompt diverged inside it.`;
+      let msg = `${pill(agent)} prompt (${prompt.length} blocks): <b style="color:#2d6a4f">reused ${hits}</b>, computed ${rest.length}.`;
+      if (split) msg += ` <span style="color:#c58a17">Split</span> the node [${split.before}] after ${split.k} block${split.k > 1 ? "s" : ""}, because the prompt diverged inside it.`;
       if (!hits) msg += " Nothing was cached yet, so the whole prompt was computed.";
       $("#radix-msg").innerHTML = msg;
       render({ hit: new Set(path), created: created && created.id, split: split ? path[path.length - 1] : null });
@@ -388,8 +388,8 @@
       }
       for (const n of nodes) {
         if (n === root) {
-          svgEl.append(s("circle", { cx: X(n), cy: Y(n), r: 9, fill: "#111a33", stroke: "#5b6a8c" }));
-          svgEl.append(s("text", { x: X(n) + 16, y: Y(n) + 4, fill: "#5b6a8c", "font-size": 12 }, "root"));
+          svgEl.append(s("circle", { cx: X(n), cy: Y(n), r: 9, fill: "#efe8d8", stroke: "#9a917f" }));
+          svgEl.append(s("text", { x: X(n) + 16, y: Y(n) + 4, fill: "#9a917f", "font-size": 12 }, "root"));
           continue;
         }
         const chip = 22, gap = 4;
@@ -400,12 +400,12 @@
         n.blocks.forEach((b, k) => {
           const bx = X(n) - w / 2 + 7 + k * (chip + gap);
           g.append(s("rect", { x: bx, y: Y(n) - 11, width: chip, height: 22, rx: 5, fill: colorOf(b) }));
-          g.append(s("text", { x: bx + chip / 2, y: Y(n) + 4, "text-anchor": "middle", "font-size": 10, "font-weight": 800, fill: "#060a14", "font-family": "JetBrains Mono" }, b));
+          g.append(s("text", { x: bx + chip / 2, y: Y(n) + 4, "text-anchor": "middle", "font-size": 10, "font-weight": 800, fill: "#fbf7ee", "font-family": "JetBrains Mono" }, b));
         });
         svgEl.append(g);
       }
       if (!root.children.size) {
-        svgEl.append(s("text", { x: width / 2, y: 120, "text-anchor": "middle", fill: "#5b6a8c", "font-size": 14 }, "(empty)"));
+        svgEl.append(s("text", { x: width / 2, y: 120, "text-anchor": "middle", fill: "#9a917f", "font-size": 14 }, "(empty)"));
       }
     }
 
@@ -414,7 +414,7 @@
       box.append(h("button", { class: "send-btn", style: `--c:${AGENT_COLOR[agent]}`, onclick: () => send(agent) },
         h("i", {}), "Send " + agent + " prompt"));
     }
-    box.append(h("button", { class: "send-btn", style: "--c:#5b6a8c", onclick: reset }, "⟲ Reset"));
+    box.append(h("button", { class: "send-btn", style: "--c:#9a917f", onclick: reset }, "⟲ Reset"));
     reset();
     // play a short demo the first time the tree scrolls into view: share, then split
     onFirstView($("#radix-svg"), () => {
@@ -505,23 +505,23 @@
       } else {
         if (lruEv) {
           out.push(lruEv.victim === next
-            ? `<p><b style="color:#f87171">LRU</b> threw out ${pill(lruEv.victim)} because it was used longest ago. But ${pill(next)} runs <b>next</b>. That's thrashing.</p>`
-            : `<p><b style="color:#f87171">LRU</b> threw out ${pill(lruEv.victim)}, the least recently used.</p>`);
+            ? `<p><b style="color:#cf4a2e">LRU</b> threw out ${pill(lruEv.victim)} because it was used longest ago. But ${pill(next)} runs <b>next</b>. That's thrashing.</p>`
+            : `<p><b style="color:#cf4a2e">LRU</b> threw out ${pill(lruEv.victim)}, the least recently used.</p>`);
         } else if (lru.hit < lru.total) {
-          out.push(`<p><b style="color:#f87171">LRU</b> missed again.</p>`);
+          out.push(`<p><b style="color:#cf4a2e">LRU</b> missed again.</p>`);
         }
         if (akvEv) {
           const d = akv.distances ? akv.distances[akvEv.victim] : null;
-          out.push(`<p><b style="color:#34d399">AgentKV</b> threw out ${pill(akvEv.victim)}, which won't run for ${d === null ? "a long time" : d + " steps"} (BFS on the workflow graph).</p>`);
+          out.push(`<p><b style="color:#2d6a4f">AgentKV</b> threw out ${pill(akvEv.victim)}, which won't run for ${d === null ? "a long time" : d + " steps"} (BFS on the workflow graph).</p>`);
         } else if (akv.hit === akv.total) {
-          out.push(`<p><b style="color:#34d399">AgentKV</b>: full cache hit, all ${akv.total} blocks reused.</p>`);
+          out.push(`<p><b style="color:#2d6a4f">AgentKV</b>: full cache hit, all ${akv.total} blocks reused.</p>`);
         }
         if (wf === "branching" && mkEv && (!akvEv || mkEv.victim !== akvEv.victim)) {
-          out.push(`<p><b style="color:#60a5fa">AgentKV-Markov</b> picked ${pill(mkEv.victim)} instead. It's still learning the probabilities from what it has seen.</p>`);
+          out.push(`<p><b style="color:#1f8a8a">AgentKV-Markov</b> picked ${pill(mkEv.victim)} instead. It's still learning the probabilities from what it has seen.</p>`);
         }
       }
       const rate = (st) => Math.round((100 * st.cum_hit) / st.cum_total) + "%";
-      out.push(`<p class="muted small">Hit rate so far: <b style="color:#f87171">LRU ${rate(lru)}</b> · <b style="color:#34d399">AgentKV ${rate(akv)}</b> · <b style="color:#60a5fa">Markov ${rate(mk)}</b> · <b style="color:#c084fc">Bélády ${rate(bel)}</b></p>`);
+      out.push(`<p class="muted small">Hit rate so far: <b style="color:#cf4a2e">LRU ${rate(lru)}</b> · <b style="color:#2d6a4f">AgentKV ${rate(akv)}</b> · <b style="color:#1f8a8a">Markov ${rate(mk)}</b> · <b style="color:#1d1a14">Bélády ${rate(bel)}</b></p>`);
       return out.join("");
     }
 
@@ -653,10 +653,10 @@
           h("div", { class: "mbar-name", html: pill(a) }),
           h("div", { class: "mbar-tracks" },
             h("div", { class: "track" }, h("span", {}, "BFS"),
-              h("div", { class: "bar" }, h("div", { style: `width:${(100 * B[a]) / max}%;background:#34d399` })),
+              h("div", { class: "bar" }, h("div", { style: `width:${(100 * B[a]) / max}%;background:#2d6a4f` })),
               h("span", { class: "num" }, B[a] + " hop" + (B[a] === 1 ? "" : "s"))),
             h("div", { class: "track" }, h("span", {}, "Markov"),
-              h("div", { class: "bar" }, h("div", { style: `width:${(100 * M[a]) / max}%;background:#60a5fa` })),
+              h("div", { class: "bar" }, h("div", { style: `width:${(100 * M[a]) / max}%;background:#1f8a8a` })),
               h("span", { class: "num" }, M[a].toFixed(2))))));
       }
       $("#markov-formula").innerHTML = p > 0
@@ -759,7 +759,7 @@
       svgEl.append(path);
       se.values.forEach((v, k) => svgEl.append(s("circle", { cx: x(k), cy: y(v), r: 3.5, fill: se.color })));
     }
-    const guide = s("line", { x1: 0, x2: 0, y1: T, y2: T + ph, stroke: "#5b6a8c", "stroke-dasharray": "4 4", opacity: 0 });
+    const guide = s("line", { x1: 0, x2: 0, y1: T, y2: T + ph, stroke: "#9a917f", "stroke-dasharray": "4 4", opacity: 0 });
     svgEl.append(guide);
     const overlay = s("rect", { x: L, y: T, width: pw, height: ph, fill: "transparent" });
     overlay.addEventListener("mousemove", (evt) => {
@@ -820,7 +820,7 @@
           dot.addEventListener("mouseleave", hideTip);
           svgEl.append(dot);
         });
-        svgEl.append(s("text", { x: cx, y: T + ph + 20, "text-anchor": "middle", fill: "#cbd5e1", "font-size": 11 }, pretty(p).replace("AgentKV-", "")));
+        svgEl.append(s("text", { x: cx, y: T + ph + 20, "text-anchor": "middle", fill: "#3d382e", "font-size": 11 }, pretty(p).replace("AgentKV-", "")));
         svgEl.append(s("text", { x: cx, y: T + ph + 36, "text-anchor": "middle", fill: POLICY_COLOR[p], "font-size": 11, "font-weight": 700 }, m.toFixed(1) + "%"));
       });
       $("#seed-chart").append(svgEl);
@@ -850,16 +850,16 @@
           rect.addEventListener("mouseleave", hideTip);
           svgEl.append(rect);
         });
-        svgEl.append(s("text", { x: L + gW * (k + 0.5), y: T + ph + 20, "text-anchor": "middle", fill: "#cbd5e1", "font-size": 11.5 }, r.workflow));
+        svgEl.append(s("text", { x: L + gW * (k + 0.5), y: T + ph + 20, "text-anchor": "middle", fill: "#3d382e", "font-size": 11.5 }, r.workflow));
         const tie = Math.abs(r.AgentKV_hit_rate - r.LRU_hit_rate) < 0.5;
-        svgEl.append(s("text", { x: L + gW * (k + 0.5), y: T + ph + 36, "text-anchor": "middle", fill: tie ? "#fbbf24" : "#34d399", "font-size": 10.5, "font-weight": 700 }, tie ? "tie" : "AgentKV wins"));
+        svgEl.append(s("text", { x: L + gW * (k + 0.5), y: T + ph + 36, "text-anchor": "middle", fill: tie ? "#c58a17" : "#2d6a4f", "font-size": 10.5, "font-weight": 700 }, tie ? "tie" : "AgentKV wins"));
       });
       $("#wf-chart").append(svgEl);
       $("#wf-chart").append(h("div", { class: "chart-legend" }, show.map((p) => h("span", { style: `--c:${POLICY_COLOR[p]}` }, h("i", {}), pretty(p)))));
     })();
 
     // stall bars
-    const STALL_COLORS = ["#f87171", "#fb923c", "#fbbf24", "#34d399", "#60a5fa"];
+    const STALL_COLORS = ["#cf4a2e", "#b07d2b", "#c58a17", "#2d6a4f", "#1f8a8a"];
     function stall(key) {
       const t = R.headline.tiered[key];
       const labels = Object.keys(t);
@@ -869,9 +869,9 @@
       labels.forEach((l, k) => {
         const v = t[l].stall_ms_per_request;
         box.append(h("div", { class: "track", style: "grid-template-columns: 260px 1fr 150px; margin: 10px 0; font-size: 0.86rem" },
-          h("span", { style: "color:#e6ebf5" }, l),
+          h("span", { style: "color:#1d1a14" }, l),
           h("div", { class: "bar", style: "height:18px" }, h("div", { style: `width:${Math.max(0.6, (100 * v) / max)}%;background:${STALL_COLORS[k]}` })),
-          h("span", { class: "num", html: `${v.toFixed(2)} ms · <span style="color:#8d9bbb">GPU hit ${t[l].gpu_hit_rate.toFixed(0)}%</span>` })));
+          h("span", { class: "num", html: `${v.toFixed(2)} ms · <span style="color:#6a6355">GPU hit ${t[l].gpu_hit_rate.toFixed(0)}%</span>` })));
       });
     }
     segmented($("#stall-tabs"), [["cyclic_300", "Loop · 300"], ["branching_300", "Branching · 300"], ["branching_360", "Branching · 360"], ["fanout_360", "Fan-out · 360"]], stall);

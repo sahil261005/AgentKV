@@ -216,12 +216,12 @@ def tiered_lane(workflow, policy_name):
 # ----------------------------------------------------------------------
 # SVG charts for the README (hand-written SVG, no plotting library)
 # ----------------------------------------------------------------------
-COLORS = {"LRU": "#f87171", "LRU-TailFirst": "#fb923c", "AgentKV": "#34d399",
-          "AgentKV-Markov": "#60a5fa", "Belady": "#c084fc"}
-BG = "#0b1020"
-GRID = "#1e293b"
-TEXT = "#cbd5e1"
-MUTED = "#64748b"
+COLORS = {"LRU": "#cf4a2e", "LRU-TailFirst": "#b07d2b", "AgentKV": "#2d6a4f",
+          "AgentKV-Markov": "#1f8a8a", "Belady": "#1d1a14"}
+BG = "#f5efe3"
+GRID = "#ddd3bf"
+TEXT = "#3d382e"
+MUTED = "#7a7262"
 
 
 def svg_line_chart(title, subtitle, xs, series, path, y_max=100):
@@ -238,7 +238,7 @@ def svg_line_chart(title, subtitle, xs, series, path, y_max=100):
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
            f'font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif">',
            f'<rect width="{w}" height="{h}" rx="16" fill="{BG}"/>',
-           f'<text x="{left}" y="32" fill="#f1f5f9" font-size="18" font-weight="700">{title}</text>',
+           f'<text x="{left}" y="32" fill="#1d1a14" font-size="18" font-weight="700">{title}</text>',
            f'<text x="{left}" y="52" fill="{MUTED}" font-size="12">{subtitle}</text>']
     for v in range(0, y_max + 1, 20):
         y = y_of(v)
@@ -278,7 +278,7 @@ def svg_bar_chart(title, subtitle, rows, path, unit="ms"):
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
            f'font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif">',
            f'<rect width="{w}" height="{h}" rx="16" fill="{BG}"/>',
-           f'<text x="28" y="32" fill="#f1f5f9" font-size="18" font-weight="700">{title}</text>',
+           f'<text x="28" y="32" fill="#1d1a14" font-size="18" font-weight="700">{title}</text>',
            f'<text x="28" y="52" fill="{MUTED}" font-size="12">{subtitle}</text>']
     for i, (name, value, color) in enumerate(rows):
         y = top + i * (bar_h + gap)
@@ -287,7 +287,7 @@ def svg_bar_chart(title, subtitle, rows, path, unit="ms"):
                    f'text-anchor="end">{name}</text>')
         out.append(f'<rect x="{left}" y="{y}" width="{pw}" height="{bar_h}" rx="6" fill="{GRID}"/>')
         out.append(f'<rect x="{left}" y="{y}" width="{bw:.1f}" height="{bar_h}" rx="6" fill="{color}"/>')
-        out.append(f'<text x="{left + bw + 8:.1f}" y="{y + bar_h / 2 + 4}" fill="#f1f5f9" font-size="12.5" '
+        out.append(f'<text x="{left + bw + 8:.1f}" y="{y + bar_h / 2 + 4}" fill="#1d1a14" font-size="12.5" '
                    f'font-weight="600">{value:,.2f} {unit}</text>')
     out.append("</svg>")
     with open(path, "w") as f:
@@ -306,18 +306,18 @@ def draw_charts(results, folder):
                        xs, series, os.path.join(folder, f"sweep-{workflow}.svg"))
 
     t = results["headline"]["tiered"]["cyclic_300"]
-    rows = [("LRU, GPU only", t["LRU, GPU only"]["stall_ms_per_request"], "#f87171"),
-            ("LRU + CPU tier", t["LRU + CPU tier"]["stall_ms_per_request"], "#fb923c"),
-            ("AgentKV + CPU tier", t["AgentKV + CPU tier, no prefetch"]["stall_ms_per_request"], "#fbbf24"),
-            ("AgentKV + CPU tier + prefetch", t["AgentKV + CPU tier + prefetch"]["stall_ms_per_request"], "#34d399")]
+    rows = [("LRU, GPU only", t["LRU, GPU only"]["stall_ms_per_request"], "#cf4a2e"),
+            ("LRU + CPU tier", t["LRU + CPU tier"]["stall_ms_per_request"], "#b07d2b"),
+            ("AgentKV + CPU tier", t["AgentKV + CPU tier, no prefetch"]["stall_ms_per_request"], "#c58a17"),
+            ("AgentKV + CPU tier + prefetch", t["AgentKV + CPU tier + prefetch"]["stall_ms_per_request"], "#2d6a4f")]
     svg_bar_chart("Modeled stall per request (4-agent loop, 300 GPU blocks)",
                   "Estimate: A100 at 50% utilisation, PCIe 4.0 at 25 GB/s · lower is better",
                   rows, os.path.join(folder, "stall-cyclic.svg"))
 
     t = results["headline"]["tiered"]["branching_300"]
-    rows = [("LRU + CPU tier", t["LRU + CPU tier"]["stall_ms_per_request"], "#fb923c"),
-            ("AgentKV (BFS) + prefetch", t["AgentKV + CPU tier + prefetch"]["stall_ms_per_request"], "#34d399"),
-            ("AgentKV-Markov + prefetch", t["AgentKV-Markov + CPU tier + prefetch"]["stall_ms_per_request"], "#60a5fa")]
+    rows = [("LRU + CPU tier", t["LRU + CPU tier"]["stall_ms_per_request"], "#b07d2b"),
+            ("AgentKV (BFS) + prefetch", t["AgentKV + CPU tier + prefetch"]["stall_ms_per_request"], "#2d6a4f"),
+            ("AgentKV-Markov + prefetch", t["AgentKV-Markov + CPU tier + prefetch"]["stall_ms_per_request"], "#1f8a8a")]
     svg_bar_chart("Branching loop: BFS vs Markov prefetching (300 GPU blocks)",
                   "Markov knows Planner comes next 70% of the time, so it prefetches the right agent",
                   rows, os.path.join(folder, "stall-branching.svg"))

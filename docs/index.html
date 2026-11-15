@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="theme-color" content="#f5efe3">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AgentKV Visualizer</title>
   <meta name="description" content="An interactive tour of AgentKV: why LRU caching fails multi-agent LLM workflows, and how workflow-aware eviction and prefetching fix it.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -184,7 +185,7 @@
   </div>
   <div class="markov reveal">
     <div class="card">
-      <svg id="markov-graph" viewBox="0 0 320 300"></svg>
+      <svg id="markov-graph" viewBox="0 0 320 340"></svg>
       <label class="slider-label">After Reviewer, go back to Coder: <output id="o-p"></output>
         <input type="range" id="markov-p" min="0" max="90" value="30"></label>
     </div>

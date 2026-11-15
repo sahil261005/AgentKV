@@ -14,11 +14,11 @@ reads the workflow graph, learns it with a Markov chain, and prefetches from CPU
 [**⚙️ How it works**](#%EF%B8%8F-how-it-works) &nbsp;·&nbsp;
 [**🚀 Run it**](#-run-it-yourself)
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-80%20passing-34d399?style=for-the-badge)
-![Dependencies](https://img.shields.io/badge/deps-NumPy%20%C2%B7%20FastAPI-60a5fa?style=for-the-badge)
-![PyTorch](https://img.shields.io/badge/PyTorch-not%20needed-f472b6?style=for-the-badge)
-![Benchmark](https://img.shields.io/badge/full%20benchmark-~28%20s-c084fc?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.10%2B-1d1a14?style=for-the-badge&logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-80%20passing-2d6a4f?style=for-the-badge)
+![Dependencies](https://img.shields.io/badge/deps-NumPy%20%C2%B7%20FastAPI-8a6d3b?style=for-the-badge)
+![PyTorch](https://img.shields.io/badge/PyTorch-not%20needed-a3472d?style=for-the-badge)
+![Benchmark](https://img.shields.io/badge/full%20benchmark-~28%20s-c58a17?style=for-the-badge)
 
 <a href="https://sahil261005.github.io/AgentKV/"><img src="docs/assets/preview-hero.png" alt="AgentKV interactive visualizer" width="900"></a>
 
@@ -126,10 +126,10 @@ value only breaks ties.
 | | Policy | `score(node)` | In plain words |
 |:---:|---|---|---|
 | 🔴 | **LRU** | `-last_access` | Oldest first. What SGLang does. |
-| 🟠 | **LRU-TailFirst** | `(is_one_time_tail, -last_access)` | Fairness baseline: same hint as AgentKV, no graph. |
+| 🟤 | **LRU-TailFirst** | `(is_one_time_tail, -last_access)` | Fairness baseline: same hint as AgentKV, no graph. |
 | 🟢 | **AgentKV** | `(BFS steps until its agent runs, -last_access)` | KVFlow's idea: furthest agent first. |
 | 🔵 | **AgentKV-Markov** | `(expected steps until its agent runs, -last_access)` | Our extension: uses probabilities and learns the graph itself. |
-| 🟣 | **Bélády** | `(steps until actually used again, -last_access)` | Cheats by reading the future trace. Reference only. |
+| ⚫ | **Bélády** | `(steps until actually used again, -last_access)` | Cheats by reading the future trace. Reference only. |
 
 ### What every prompt looks like
 
@@ -146,7 +146,7 @@ and the floor is **13.1%**, because the shared system prompt always hits.
 
 ## 🔬 Two extensions beyond the paper
 
-### 🔵 Extension 1: Markov-chain eviction that learns the workflow
+### 🔷 Extension 1: Markov-chain eviction that learns the workflow
 
 BFS only counts hops. If the Reviewer goes to the Planner 70% of the time and back to the Coder 30% of the
 time, BFS says both are "1 step away", a tie. AgentKV-Markov treats the workflow as a **Markov chain** and
