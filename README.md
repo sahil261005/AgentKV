@@ -82,9 +82,10 @@ Give the GPU room for **3 of the 4 agents** and watch what LRU does:
 > thing, every single step. That's called **thrashing**. Here LRU gets **zero** hits on agent prompts,
 > only on the shared system prompt.
 
-**The fix (from the KVFlow paper):** give the cache the workflow graph. Run a breadth-first search from the
-agent running now to find how many steps away every agent is, and evict the one that runs **furthest in the
-future**.
+**The fix (the idea comes from the KVFlow paper):** give the cache the workflow graph and evict the agent
+that runs **furthest in the future**. KVFlow calls this graph an *Agent Step Graph* and gives each agent a
+*steps-to-execution* value. Here that value is computed with a breadth-first search from the agent running
+now, our simplification of KVFlow's min/max aggregation.
 
 <div align="center">
 <img src="docs/assets/preview-simulator.png" alt="Live simulator: four policies side by side" width="900"><br>
@@ -490,6 +491,45 @@ You can also just open `docs/index.html` in a browser.
 
 ---
 
+## 📖 What the papers report (their numbers, not ours)
+
+> [!NOTE]
+> These figures are the papers' own, quoted from the text. They come from **real GPUs and real models**
+> and measure end-to-end throughput. This project is a simulator that counts cache hits, so the two sets of
+> numbers measure different things and **should not be compared directly**. Passages that could not be read
+> verbatim were left out.
+
+| Paper | What it reports | Setup |
+|---|---|---|
+| **vLLM** (SOSP 2023) | "improves the throughput of popular LLMs by 2-4× with the same level of latency" vs FasterTransformer and Orca (abstract) | A100 GPUs; GPT, OPT and LLaMA-family models |
+| **vLLM** | "only 20.4% - 38.2% of the KV cache memory is used to store the actual token states in the existing systems" (§1) | Their profiling in §6.2 |
+| **vLLM** | A single token of OPT-13B needs "800 KB": 2 (key and value) × 5120 × 40 × 2 bytes (§3) | 13B model, FP16 |
+| **vLLM** | "vLLM sets its default block size as 16" (§7.2) | Our block size follows this |
+| **SGLang** (RadixAttention) | "up to 6.4× higher throughput" (abstract) and "reduces latency by up to 3.7×" (§6.2) vs Guidance, vLLM and LMQL | Mostly A10G (24 GB); some runs on A100 (80 GB) |
+| **SGLang** | "the cache hit rate ranges from 50% to 99%" on their benchmarks (§6.2) | Their benchmark suite |
+| **SGLang** | "an LRU eviction policy that evicts the least recently used leaf first"; "A node is evictable if its reference counter is zero" (§3) | This is exactly our LRU baseline |
+| **KVFlow** | "up to 1.83×" over SGLang with hierarchical radix cache for single workflows with large prompts, and "up to 2.19×" with many concurrent workflows (abstract) | Llama-3.1-8B on an A10G (24 GB, 2 GB/s PCIe); concurrent runs on one H100 (§4) |
+| **KVFlow** | 1.83× over SGLang with hierarchical radix cache and 2.91× over GPU-only SGLang, in the 8192-token fixed-prefix setting on A10G (§4.1) | 10 sequential agents, synthetic prompts |
+| **KVFlow** | LRU "fails to anticipate future agent usage and often discards KV caches shortly before their reuse" (abstract) | The behaviour this project reproduces |
+
+**How these relate to this project**
+
+- ✅ **The direction agrees.** KVFlow reports that workflow-aware eviction plus prefetching beats LRU-based
+  caching on real hardware, and our simulator shows the same effect in hit rates and modeled stall.
+- ✅ **Our size formula checks out.** The per-token formula in this README gives
+  2 × 40 layers × 5,120 × 2 bytes = 819,200 bytes for OPT-13B, which is the paper's "800 KB".
+- ⚠️ **"Thrashing" is our word.** KVFlow describes LRU discarding a cache shortly before its reuse inside a
+  four-agent cyclic workflow figure. It doesn't use the word "thrashing".
+- ⚠️ **KVFlow doesn't use BFS or probabilities.** It computes steps-to-execution with min/max rules over the
+  step graph (e.g. `max(E1, E2) + 1`), and for branches it "conservatively prefetches all agents that may be
+  executed next". The BFS version here is our simplification, and the Markov extension is our own idea.
+- ⚠️ **The hardware differs.** KVFlow's testbeds have 2 GB/s (A10G) and 64 GB/s (H100) PCIe, while our cost
+  model assumes an A100 and 25 GB/s. Our stall times are modeled estimates, not measurements.
+- ℹ️ **Same trace style.** KVFlow also generates synthetic prompts by "randomly sampling token sequences",
+  which is how our traces are built.
+
+---
+
 ## 📚 What comes from the papers vs what this project adds
 
 | Idea | Source |
@@ -497,7 +537,7 @@ You can also just open `docs/index.html` in a browser.
 | Fixed-size KV blocks with IDs | vLLM / PagedAttention |
 | Radix-tree prefix cache, ref counts, leaf eviction, LRU | SGLang / RadixAttention |
 | Chained block hashes | vLLM prefix caching |
-| Workflow graph, steps-to-execution, evict the furthest agent | KVFlow |
+| Workflow graph ("Agent Step Graph"), steps-to-execution, evict the furthest agent first | KVFlow (we compute the distance with BFS, our simplification) |
 | Fixed prompt vs one-time tail; CPU offload and prefetching | KVFlow |
 | "Evict the furthest future use" oracle | Bélády (1966) |
 | ✨ **Simulator, workloads, 7 experiments and their analysis** | **This project** |
