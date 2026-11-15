@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentKV Visualizer</title>
+  <meta name="description" content="An interactive tour of AgentKV: why LRU caching fails multi-agent LLM workflows, and how workflow-aware eviction and prefetching fix it.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body data-repo="https://github.com/sahil261005/AgentKV">
+
+<nav class="nav">
+  <a class="brand" href="#top"><span class="brand-mark"></span>AgentKV</a>
+  <div class="nav-links">
+    <a href="#problem">Problem</a>
+    <a href="#kv">KV cache</a>
+    <a href="#radix">Radix tree</a>
+    <a href="#sim">Simulator</a>
+    <a href="#markov">BFS vs Markov</a>
+    <a href="#tiers">Prefetch</a>
+    <a href="#results">Results</a>
+    <a href="#limits">Limits</a>
+  </div>
+  <a class="btn btn-ghost repo-link" target="_blank" rel="noopener">GitHub ↗</a>
+</nav>
+
+<!-- ============================== HERO ============================== -->
+<header class="hero" id="top">
+  <div class="hero-text reveal">
+    <div class="eyebrow">LLM serving · KV-cache memory · multi-agent workflows</div>
+    <h1>When AI agents take turns,<br><span class="grad">the cache forgets the wrong thing.</span></h1>
+    <p class="lead">
+      AgentKV simulates the memory layer of an LLM server. It shows why the standard cache policy
+      (<b>LRU</b>) throws away exactly the agent that runs next, and it builds and measures a fix that
+      reads the workflow graph, learns it with a Markov chain, and prefetches from CPU memory.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#sim">▶ Watch it happen</a>
+      <a class="btn btn-ghost" href="#problem">Start from zero</a>
+    </div>
+  </div>
+  <div class="hero-visual reveal">
+    <svg id="hero-ring" viewBox="0 0 360 360" aria-label="Animated agent loop"></svg>
+  </div>
+  <div class="stats reveal" id="hero-stats"></div>
+</header>
+
+<main>
+
+<!-- ============================== PROBLEM ============================== -->
+<section id="problem" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 1</span>
+    <h2>The problem in one picture</h2>
+    <p>Four agents take turns calling the same model. The GPU only has room to cache three of them.</p>
+  </div>
+  <div class="problem-grid reveal">
+    <div class="card">
+      <h3>What LRU does</h3>
+      <p class="muted">"Least Recently Used": throw out whatever was used longest ago.</p>
+      <ol class="timeline" id="lru-story"></ol>
+    </div>
+    <div class="card">
+      <h3>What AgentKV does</h3>
+      <p class="muted">Look at the workflow graph and throw out the agent that runs <b>furthest in the future</b>.</p>
+      <ol class="timeline" id="akv-story"></ol>
+    </div>
+  </div>
+  <div class="callout reveal">
+    <span class="callout-icon">💡</span>
+    <div>In a loop, <b>the agent used longest ago is exactly the one that runs next</b>. LRU always evicts
+      the worst possible thing. Evicting something right before it's needed, over and over, is called
+      <b>thrashing</b>.</div>
+  </div>
+</section>
+
+<!-- ============================== KV CACHE ============================== -->
+<section id="kv" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 2</span>
+    <h2>The KV cache in 60 seconds</h2>
+    <p>An LLM turns every prompt token into a <b>key</b> and a <b>value</b> vector, in every layer. Storing
+      them (the KV cache) lets the model skip recomputing the prompt. That first, expensive pass over a
+      prompt is called <b>prefill</b>.</p>
+  </div>
+
+  <div class="card reveal">
+    <h3>What an agent's prompt looks like</h3>
+    <p class="muted">Every square is one <b>block</b> of 16 tokens. Memory is handed out in blocks (the vLLM / PagedAttention idea).</p>
+    <div class="prompt-strip" id="prompt-strip"></div>
+    <div class="legend" id="prompt-legend"></div>
+  </div>
+
+  <div class="calc reveal">
+    <div class="card calc-controls">
+      <h3>How big is it? Try it</h3>
+      <div class="chips" id="calc-presets"></div>
+      <label>Layers <output id="o-layers"></output><input type="range" id="c-layers" min="1" max="96" value="32"></label>
+      <label>KV heads <output id="o-heads"></output><input type="range" id="c-heads" min="1" max="64" value="8"></label>
+      <label>Head dimension <output id="o-dim"></output><input type="range" id="c-dim" min="32" max="256" step="32" value="128"></label>
+      <label>Prompt length (tokens) <output id="o-tokens"></output><input type="range" id="c-tokens" min="100" max="8000" step="50" value="2000"></label>
+    </div>
+    <div class="card calc-out">
+      <div class="formula" id="calc-formula"></div>
+      <div class="calc-big">
+        <div><span class="big" id="calc-token"></span><span class="unit">per token</span></div>
+        <div><span class="big" id="calc-block"></span><span class="unit">per 16-token block</span></div>
+        <div><span class="big" id="calc-prompt"></span><span class="unit">for this prompt</span></div>
+      </div>
+      <p class="calc-fit" id="calc-fit"></p>
+      <p class="muted small" id="calc-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== RADIX ============================== -->
+<section id="radix" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 3</span>
+    <h2>Sharing prompts with a radix tree</h2>
+    <p>Prompts that start the same way share their cached blocks. SGLang stores them in a <b>radix tree</b>:
+      each path from the root is a prompt, and shared beginnings are stored once. Send some prompts and
+      watch the tree grow, share and <b>split</b>.</p>
+  </div>
+  <div class="card reveal">
+    <div class="radix-controls" id="radix-buttons"></div>
+    <div class="radix-msg" id="radix-msg">The tree is empty. Send a prompt.</div>
+    <svg id="radix-svg" class="radix-svg" viewBox="0 0 900 300"></svg>
+    <div class="radix-foot">
+      <div><span class="big-sm" id="radix-saved">0</span> blocks reused instead of recomputed</div>
+      <div class="muted small">Only full 16-token blocks are cached. Splitting a node only re-slices lists; no KV data is copied.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== SIMULATOR ============================== -->
+<section id="sim" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 4</span>
+    <h2>The live simulator</h2>
+    <p>Every frame below is a real step recorded from the AgentKV engine: a system prompt of 1 block,
+      4 blocks per agent, and a GPU with <b>13 blocks</b> (room for 3 agents). Four policies get the
+      exact same requests.</p>
+  </div>
+
+  <div class="player card reveal" id="sim-player">
+    <div class="player-top">
+      <div class="seg" id="sim-workflow"></div>
+      <div class="player-buttons">
+        <button class="icon-btn" data-act="reset" title="Restart">⟲</button>
+        <button class="icon-btn" data-act="prev" title="Previous step">◀</button>
+        <button class="icon-btn play" data-act="play" title="Play / pause">▶</button>
+        <button class="icon-btn" data-act="next" title="Next step">▶|</button>
+        <select class="speed" data-act="speed" title="Speed">
+          <option value="2200">Slow</option><option value="1400" selected>Normal</option><option value="700">Fast</option>
+        </select>
+      </div>
+    </div>
+    <div class="seq" id="sim-seq"></div>
+    <div class="sim-stage">
+      <div class="ring-wrap">
+        <svg id="sim-ring" viewBox="0 0 300 300"></svg>
+        <div class="ring-caption" id="sim-ring-caption"></div>
+      </div>
+      <div class="narration" id="sim-narration"></div>
+    </div>
+    <div class="lanes" id="sim-lanes"></div>
+  </div>
+</section>
+
+<!-- ============================== MARKOV ============================== -->
+<section id="markov" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 5</span>
+    <h2>Counting hops vs expecting steps</h2>
+    <p>AgentKV uses <b>breadth-first search</b> to count how many hops away each agent is. But when the
+      Reviewer sends work back to the Coder some of the time, BFS calls Planner and Coder both "1 hop away".
+      Our extension treats the workflow as a <b>Markov chain</b> and computes the <i>expected</i> number of
+      steps instead. Drag the slider.</p>
+  </div>
+  <div class="markov reveal">
+    <div class="card">
+      <svg id="markov-graph" viewBox="0 0 320 300"></svg>
+      <label class="slider-label">After Reviewer, go back to Coder: <output id="o-p"></output>
+        <input type="range" id="markov-p" min="0" max="90" value="30"></label>
+    </div>
+    <div class="card">
+      <h3>From Reviewer, how far away is each agent?</h3>
+      <div id="markov-bars"></div>
+      <div class="formula small" id="markov-formula"></div>
+      <div class="verdict" id="markov-verdict"></div>
+    </div>
+  </div>
+  <div class="three reveal">
+    <div class="card mini">
+      <div class="mini-icon">📐</div>
+      <h4>The one rule</h4>
+      <p><code>h(target) = 0</code><br><code>h(u) = 1 + Σ P(u→w) · h(w)</code><br>"Take one step, then add the average of where you land." NumPy solves all the equations at once.</p>
+    </div>
+    <div class="card mini">
+      <div class="mini-icon">🧠</div>
+      <h4>It learns the graph</h4>
+      <p>It counts which step follows which, so nobody has to register a workflow. Before it has seen anything it behaves exactly like LRU, so it starts slow and improves.</p>
+    </div>
+    <div class="card mini">
+      <div class="mini-icon">👥</div>
+      <h4>States are steps</h4>
+      <p>The first version modeled single agents and broke parallel fan-out (28.2% → 14.6%). Making a state "the group of agents running together" fixed it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== TIERS ============================== -->
+<section id="tiers" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 6</span>
+    <h2>Two memory tiers and prefetching</h2>
+    <p>A server has far more CPU RAM than GPU memory. Evicted prompts can be <b>offloaded</b> to the CPU
+      instead of being deleted, and copied back about 20x cheaper than recomputing them. But a request
+      that has to wait for that copy still <b>stalls</b>. <b>Prefetching</b> copies the next agent's
+      prompt back <i>before</i> it runs.</p>
+  </div>
+  <div class="player card reveal" id="tier-player">
+    <div class="player-top">
+      <div class="seg" id="tier-workflow"></div>
+      <div class="player-buttons">
+        <button class="icon-btn" data-act="reset" title="Restart">⟲</button>
+        <button class="icon-btn" data-act="prev" title="Previous step">◀</button>
+        <button class="icon-btn play" data-act="play" title="Play / pause">▶</button>
+        <button class="icon-btn" data-act="next" title="Next step">▶|</button>
+        <select class="speed" data-act="speed" title="Speed">
+          <option value="2200">Slow</option><option value="1400" selected>Normal</option><option value="700">Fast</option>
+        </select>
+      </div>
+    </div>
+    <div class="seq" id="tier-seq"></div>
+    <div class="tier-lanes" id="tier-lanes"></div>
+    <p class="muted small" id="tier-note"></p>
+  </div>
+</section>
+
+<!-- ============================== RESULTS ============================== -->
+<section id="results" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 7</span>
+    <h2>The full benchmark</h2>
+    <p>The real setup: Llama-3-8B sizing (2 MiB blocks), 1,536-token agent prompts, 200 requests per trace,
+      10 seeds, 1,700 simulated runs. Every number is an exact count. Hover the charts.</p>
+  </div>
+
+  <div class="card reveal">
+    <div class="chart-head">
+      <h3>Block hit rate as the cache grows</h3>
+      <div class="seg" id="sweep-tabs"></div>
+    </div>
+    <div id="sweep-chart" class="chart"></div>
+    <p class="muted small" id="sweep-note"></p>
+  </div>
+
+  <div class="two reveal">
+    <div class="card">
+      <h3>Is it luck? 10 seeds</h3>
+      <p class="muted small">Branching loop, 300 blocks. Each dot is one seed.</p>
+      <div id="seed-chart" class="chart"></div>
+    </div>
+    <div class="card">
+      <h3>Five workflow shapes</h3>
+      <p class="muted small">Cache = 75% of what all agents need.</p>
+      <div id="wf-chart" class="chart"></div>
+    </div>
+  </div>
+
+  <div class="card reveal">
+    <div class="chart-head">
+      <h3>Modeled stall per request with a CPU tier</h3>
+      <div class="seg" id="stall-tabs"></div>
+    </div>
+    <div id="stall-chart" class="chart"></div>
+    <p class="muted small">Estimate from exact counts: A100 at 50% utilisation, PCIe 4.0 at 25 GB/s (1 block: 1.64 ms to recompute vs 0.08 ms to copy). Prefetched copies overlap the previous step.</p>
+  </div>
+
+  <div class="card reveal">
+    <h3>Does it hold when the setup changes?</h3>
+    <div id="sens-table"></div>
+  </div>
+</section>
+
+<!-- ============================== LIMITS ============================== -->
+<section id="limits" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Chapter 8</span>
+    <h2>Where it does <i>not</i> help</h2>
+    <p>Reporting the losses and ties is part of the result.</p>
+  </div>
+  <div class="limit-grid reveal" id="limit-grid"></div>
+</section>
+
+<!-- ============================== UNDER THE HOOD ============================== -->
+<section id="hood" class="section">
+  <div class="section-head reveal">
+    <span class="chapter">Under the hood</span>
+    <h2>How it's built</h2>
+  </div>
+  <div class="arch reveal">
+    <div class="arch-row"><div class="arch-box req">request: (agent, token IDs)</div></div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-row"><div class="arch-box engine">CacheEngine<span>match → lock → evict → allocate → insert → unlock</span></div></div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-row three-cols">
+      <div class="arch-box">BlockPool<span>16-token blocks, free list, 2 MiB each</span></div>
+      <div class="arch-box">RadixTree<span>prefix sharing, split, ref counts, chained hashes</span></div>
+      <div class="arch-box">Eviction policy<span>victim = max(leaves, key=score)</span></div>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-row"><div class="arch-box tier">TieredCacheEngine<span>GPU ⇄ CPU offload + workflow-aware prefetch</span></div></div>
+  </div>
+  <div class="facts reveal" id="facts"></div>
+  <div class="papers reveal">
+    <div class="paper"><b>vLLM / PagedAttention</b><span>SOSP 2023 · fixed-size KV blocks</span></div>
+    <div class="paper"><b>SGLang / RadixAttention</b><span>NeurIPS 2024 · radix-tree prefix cache, LRU</span></div>
+    <div class="paper"><b>KVFlow</b><span>2025 · workflow-aware eviction and prefetching</span></div>
+    <div class="paper"><b>Bélády</b><span>1966 · the "evict furthest future use" oracle</span></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div>AgentKV · a trace-driven simulation in pure Python + NumPy. Every animation on this page replays real output from the engine.</div>
+  <a class="repo-link" target="_blank" rel="noopener">Source code on GitHub ↗</a>
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
