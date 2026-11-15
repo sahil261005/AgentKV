@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+
+# personal study notes (not published)
+EXPLANATION.md
+PLAN.md
